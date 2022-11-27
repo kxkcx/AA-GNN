@@ -121,31 +121,31 @@ class LocalAggregator(nn.Module):
         output = torch.matmul(alpha, h)
         return output
         
-class AttributeAggregator(nn.Module):
-    def __init__(self, dim):
-        super(MirrorAggregator, self).__init__()
-        self.dim = dim
-        self.Wq1 = nn.Linear(self.dim, self.dim, bias=False)
-        self.Wk1 = nn.Linear(self.dim, self.dim, bias=False)
+# class AttributeAggregator(nn.Module):
+#     def __init__(self, dim):
+#         super(MirrorAggregator, self).__init__()
+#         self.dim = dim
+#         self.Wq1 = nn.Linear(self.dim, self.dim, bias=False)
+#         self.Wk1 = nn.Linear(self.dim, self.dim, bias=False)
 
-        self.Wq2 = nn.Linear(self.dim, self.dim, bias=False)
-        self.Wk2 = nn.Linear(self.dim, self.dim, bias=False)
+#         self.Wq2 = nn.Linear(self.dim, self.dim, bias=False)
+#         self.Wk2 = nn.Linear(self.dim, self.dim, bias=False)
 
-    def forward(self, mirror_nodes, satellite_nodes, satellite_node_mask):
-        alpha_left = self.Wq1(satellite_nodes).unsqueeze(2)
-        alpha_right = self.Wk1(mirror_nodes).unsqueeze(3)
-        alpha = torch.matmul(alpha_left, alpha_right) / math.sqrt(self.dim)
-        alpha = alpha.squeeze().unsqueeze(2)
-        satellite_nodes = satellite_nodes + alpha * (mirror_nodes - satellite_nodes)
+#     def forward(self, mirror_nodes, satellite_nodes, satellite_node_mask):
+#         alpha_left = self.Wq1(satellite_nodes).unsqueeze(2)
+#         alpha_right = self.Wk1(mirror_nodes).unsqueeze(3)
+#         alpha = torch.matmul(alpha_left, alpha_right) / math.sqrt(self.dim)
+#         alpha = alpha.squeeze().unsqueeze(2)
+#         satellite_nodes = satellite_nodes + alpha * (mirror_nodes - satellite_nodes)
 
-        beta_left = self.Wq2(mirror_nodes)
-        beta_right = self.Wk2(satellite_nodes).transpose(1, 2)
-        beta = torch.matmul(beta_left, beta_right)
-        beta = beta / math.sqrt(self.dim)
-        satellite_node_mask = satellite_node_mask.unsqueeze(1).repeat(1, satellite_nodes.size(1), 1)
-        beta = beta.clone()
-        beta[~satellite_node_mask] = float('-inf')
-        beta = F.softmax(beta, 2)
-        mirror_nodes = torch.matmul(beta, mirror_nodes)
+#         beta_left = self.Wq2(mirror_nodes)
+#         beta_right = self.Wk2(satellite_nodes).transpose(1, 2)
+#         beta = torch.matmul(beta_left, beta_right)
+#         beta = beta / math.sqrt(self.dim)
+#         satellite_node_mask = satellite_node_mask.unsqueeze(1).repeat(1, satellite_nodes.size(1), 1)
+#         beta = beta.clone()
+#         beta[~satellite_node_mask] = float('-inf')
+#         beta = F.softmax(beta, 2)
+#         mirror_nodes = torch.matmul(beta, mirror_nodes)
 
-        return satellite_nodes, mirror_nodes
+#         return satellite_nodes, mirror_nodes
