@@ -78,6 +78,7 @@ class AttributeAggregator(nn.Module):
 
 
     
+#gat2 
 class LocalAggregator(nn.Module):
     def __init__(self, dim, alpha):
         super(LocalAggregator, self).__init__()
@@ -89,8 +90,7 @@ class LocalAggregator(nn.Module):
         self.bias = nn.Parameter(torch.Tensor(self.dim))
 
         self.leakyrelu = nn.LeakyReLU(alpha)
-    # gat的实现
-    def forward(self, hidden, adj, mask_item=None):
+        def forward(self, hidden, adj, mask_item=None):
         h = hidden
         batch_size = h.shape[0]
         N = h.shape[1]
@@ -120,10 +120,8 @@ class LocalAggregator(nn.Module):
 
         output = torch.matmul(alpha, h)
         return output
-    # gat2 
         
-        
-class MirrorAggregator(nn.Module):
+class AttributeAggregator(nn.Module):
     def __init__(self, dim):
         super(MirrorAggregator, self).__init__()
         self.dim = dim
