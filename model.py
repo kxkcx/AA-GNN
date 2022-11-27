@@ -1,3 +1,4 @@
+@@ -0,0 +1,291 @@
 import datetime
 import numpy as np
 from tqdm import tqdm
@@ -30,12 +31,12 @@ class CombineGraph(Module):
             agg = MirrorAggregator(self.dim)
             self.mirror_agg.append(agg)
 
-        # high way net  全连�? 
+        # high way net  全连接 
         self.highway = nn.Linear(self.dim * 2, self.dim, bias=False)
 
         # embeddings   https://www.jianshu.com/p/63e7acc5e890
         self.embedding = nn.Embedding(num_node, self.dim)
-        # 参数1：seq_len �? 参数2：embedding_size  
+        # 参数1：seq_len 和 参数2：embedding_size  
         self.pos_embedding = nn.Embedding(200, self.dim)
                 
         # Parameters
@@ -48,7 +49,7 @@ class CombineGraph(Module):
         
         # loss function 
         self.loss_function = nn.CrossEntropyLoss()
-        #修改优化�?
+        #修改优化器
         # self.optimizer = torch.optim.Adam(self.parameters(), lr=opt.lr, weight_decay=opt.l2)
         self.optimizer = torch.optim.AdamW(self.parameters(), lr=opt.lr, weight_decay=opt.l2)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=opt.lr_dc_step, gamma=opt.lr_dc)
@@ -59,7 +60,7 @@ class CombineGraph(Module):
         for weight in self.parameters():
             weight.data.uniform_(-stdv, stdv)
             
-#    得到注意力掩�?         
+#    得到注意力掩码         
     def get_attention_mask(self, item_seq, bidirectional=False):
         """Generate left-to-right uni-directional or bidirectional attention mask for multi-head attention."""
         attention_mask = (item_seq != 0)
@@ -73,7 +74,7 @@ class CombineGraph(Module):
         hm = h_mirror
         hl = h_local.unsqueeze(1).repeat(1, hidden.size(1), 1)
         hp = hidden + pos_emb
-        nh = self.glu1(hp) + self.glu2(hm) + self.glu3(hl)
+        nh = torch.sigmoid(self.glu1(hp) + self.glu2(hm) + self.glu3(hl))
         # beta = torch.matmul(nh, self.w)
         self.LayerNorm = nn.LayerNorm(self.dim , eps=1e-12)
         input_emb = self.LayerNorm(hp)
@@ -93,11 +94,10 @@ class CombineGraph(Module):
         gf = torch.sigmoid(self.gate(torch.cat([zg, h_local], dim=-1))) * self.mu
         zh = gf * h_local + (1 - gf) * zg
         zh = F.dropout(zh, self.opt.dropout_score, self.training)
-          #尝试使用l2正则�?
+        #尝试使用l2正则化
         item_weight = F.normalize(item_weight, dim=-1)
-        #t = 0.050的时候tmall最�?  ranspose(1, 0) 矩阵转置
+        #t = 0.050的时候tmall最好  ranspose(1, 0) 矩阵转置
         scores = torch.matmul(zh, item_weight.transpose(1, 0)) / 0.084
-        # scores = torch.matmul(zh, item_weight.transpose(1, 0))
         return scores
     
     
@@ -115,10 +115,10 @@ class CombineGraph(Module):
     #     zh = gf * h_local + (1 - gf) * zg
     #     zh = F.dropout(zh, self.opt.dropout_score, self.training)
     #     zh = F.normalize(zh, dim=-1)
-    #     #尝试使用l2正则�?
-    #     item_weight = F.normalize(item_weight, dim=-1)
-    #     #t = 0.050的时候tmall最�?  ranspose(1, 0) 矩阵转置
-    #     scores = torch.matmul(zh, item_weight.transpose(1, 0)) / 0.084
+        # #尝试使用l2正则化
+        # item_weight = F.normalize(item_weight, dim=-1)
+        # #t = 0.050的时候tmall最好  ranspose(1, 0) 矩阵转置
+        # scores = torch.matmul(zh, item_weight.transpose(1, 0)) / 0.084
     #     # scores = torch.matmul(zh, item_weight.transpose(1, 0)) / 0.050
     #     return scores
     
@@ -135,7 +135,7 @@ class CombineGraph(Module):
         loss = torch.mean(loss)
         return loss
     
-    # 引入自监督损�?
+    # 引入自监督损失
     def compute_score_and_ssl_loss(self, h, h_local, h_mirror, mask, hf_SSL1, hf_SSL2, simi_mask):
         # unsqueeze维度变换        
         mask = mask.float().unsqueeze(-1)
